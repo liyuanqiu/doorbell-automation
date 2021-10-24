@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta content="width=device-width,initial-scale=1.0" name="viewport" />
+    <meta content="origin" name="referrer" />
+    <style>
+      .title {
+        text-align: center;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin-top: 40px;
+      }
+      .cmd {
+        height: 60px;
+        font-size: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="title">37号楼门控系统</h1>
+    <div class="container">
+      <button id="cmd1" class="cmd">一键开锁</button>
+      <button id="cmd2" class="cmd">开锁/通电</button>
+      <button id="cmd3" class="cmd">开锁/断电</button>
+    </div>
+    <script>
+      const cmd1 = document.querySelector("#cmd1");
+      cmd1.addEventListener("click", () => {
+        fetch("/open-door")
+          .then((res) => res.text())
+          .then((text) => alert(text))
+          .catch((e) => alert(e.message));
+      });
+      const cmd2 = document.querySelector("#cmd2");
+      cmd2.addEventListener("click", () => {
+        fetch("/open-door-step-1")
+          .then((res) => res.text())
+          .then((text) => alert(text))
+          .catch((e) => alert(e.message));
+      });
+      const cmd3 = document.querySelector("#cmd3");
+      cmd3.addEventListener("click", () => {
+        fetch("/open-door-step-2")
+          .then((res) => res.text())
+          .then((text) => alert(text))
+          .catch((e) => alert(e.message));
+      });
+    </script>
+  </body>
+</html>

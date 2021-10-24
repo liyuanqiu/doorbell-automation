@@ -1,5 +1,7 @@
 import { Socket, createServer } from "net";
 import { createServer as createServerHTTP } from "http";
+import { readFile } from "fs";
+import { join } from "path";
 import { log, LogLevel } from "./log";
 import {
   TCP_PORT,
@@ -22,9 +24,11 @@ function createTCPServer() {
       log(LogLevel.INFO, "TCP_SERVER Client disconnected!");
     });
     _socket.on("data", (buf) => {
-      log(LogLevel.INFO, `TCP_SERVER Recv "${buf.toString("hex")}"`);
+      // ignore other regular status report
+      // log(LogLevel.INFO, `TCP_SERVER Recv "${buf.toString("hex")}"`);
       if (buf.equals(REG_MSG)) {
         socket = _socket;
+        log(LogLevel.INFO, `TCP_SERVER Recv "${buf.toString("hex")}"`);
         log(LogLevel.INFO, "TCP_SERVER Controller register successfully!");
         return;
       }
@@ -43,23 +47,61 @@ function createTCPServer() {
 function createHTTPServer() {
   const server = createServerHTTP((req, res) => {
     log(LogLevel.INFO, `${req.method} ${req.url}`);
-    if (req.method === "GET" && req.url === "/open-door") {
-      log(LogLevel.INFO, "HTTP_SERVER Handling opening door...");
-      if (socket === null) {
-        log(LogLevel.INFO, "HTTP_SERVER No controller connected!");
-        res.end("No controller connected!");
+    if (req.url === "/favicon.ico") {
+      res.end("OK");
+      return;
+    }
+    if (req.method === "GET" && req.url === "/") {
+      log(LogLevel.INFO, "HTTP_SERVER Render index.html");
+      res.setHeader("content-type", "text/html");
+      readFile(join(__dirname, "index.html"), (err, buf) => {
+        if (err) {
+          res.end("500");
+          return;
+        }
+        res.end(buf.toString("utf8"));
         return;
-      }
-      socket.write(OPEN_DOOR_STEP_1_MSG, () => {
-        setTimeout(() => {
-          socket.write(OPEN_DOOR_STEP_2_MSG, () => {
-            res.end("Command sent to controller.");
-          });
-        }, 200);
       });
       return;
     }
-    res.end("Unrecognized command.");
+    if (socket === null) {
+      log(LogLevel.INFO, "HTTP_SERVER No controller connected!");
+      res.end("No controller connected!");
+      return;
+    }
+    if (req.method === "GET") {
+      switch (req.url) {
+        case "/open-door": {
+          log(LogLevel.INFO, "HTTP_SERVER Handling open-door...");
+          socket.write(OPEN_DOOR_STEP_1_MSG, () => {
+            setTimeout(() => {
+              socket.write(OPEN_DOOR_STEP_2_MSG, () => {
+                res.end("OK");
+              });
+            }, 200);
+          });
+          break;
+        }
+        case "/open-door-step-1": {
+          log(LogLevel.INFO, "HTTP_SERVER Handling open-door-step-1...");
+          socket.write(OPEN_DOOR_STEP_1_MSG, () => {
+            res.end("OK");
+          });
+          break;
+        }
+        case "/open-door-step-2": {
+          log(LogLevel.INFO, "HTTP_SERVER Handling open-door-step-2...");
+          socket.write(OPEN_DOOR_STEP_2_MSG, () => {
+            res.end("OK");
+          });
+          break;
+        }
+        default:
+          res.end("Unrecognized command.");
+      }
+    } else {
+      res.end("Unsupported HTTP method.");
+    }
   });
 
   server.listen(HTTP_PORT, () => {
