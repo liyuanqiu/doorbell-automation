@@ -33,6 +33,9 @@ function createTCPServer() {
         return;
       }
     });
+    _socket.on("error", (e) => {
+      log(LogLevel.WARN, `${e.name}: ${e.message}`);
+    });
   });
 
   server.on("error", (err) => {
@@ -46,7 +49,7 @@ function createTCPServer() {
 
 function createHTTPServer() {
   const server = createServerHTTP((req, res) => {
-    log(LogLevel.INFO, `${req.method} ${req.url}`);
+    log(LogLevel.INFO, `HTTP_SERVER ${req.method} ${req.url}`);
     if (req.url === "/favicon.ico") {
       res.end("OK");
       return;
@@ -73,27 +76,39 @@ function createHTTPServer() {
       switch (req.url) {
         case "/open-door": {
           log(LogLevel.INFO, "HTTP_SERVER Handling open-door...");
-          socket.write(OPEN_DOOR_STEP_1_MSG, () => {
-            setTimeout(() => {
-              socket.write(OPEN_DOOR_STEP_2_MSG, () => {
-                res.end("OK");
-              });
-            }, 200);
-          });
+          try {
+            socket.write(OPEN_DOOR_STEP_1_MSG, () => {
+              setTimeout(() => {
+                socket.write(OPEN_DOOR_STEP_2_MSG, () => {
+                  res.end("OK");
+                });
+              }, 200);
+            });
+          } catch (e) {
+            res.end(e.message);
+          }
           break;
         }
         case "/open-door-step-1": {
           log(LogLevel.INFO, "HTTP_SERVER Handling open-door-step-1...");
-          socket.write(OPEN_DOOR_STEP_1_MSG, () => {
-            res.end("OK");
-          });
+          try {
+            socket.write(OPEN_DOOR_STEP_1_MSG, () => {
+              res.end("OK");
+            });
+          } catch (e) {
+            res.end(e.message);
+          }
           break;
         }
         case "/open-door-step-2": {
           log(LogLevel.INFO, "HTTP_SERVER Handling open-door-step-2...");
-          socket.write(OPEN_DOOR_STEP_2_MSG, () => {
-            res.end("OK");
-          });
+          try {
+            socket.write(OPEN_DOOR_STEP_2_MSG, () => {
+              res.end("OK");
+            });
+          } catch (e) {
+            res.end(e.message);
+          }
           break;
         }
         default:
